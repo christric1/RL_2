@@ -57,12 +57,14 @@ class DDPGAgent():
         # Actor Network (w/ Target Network)
         self.actor_local = Actor(action_size).to(device)
         self.actor_target = Actor(action_size).to(device)
-        self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
+        fc_params = list(self.actor_local.fc1.parameters()) + list(self.actor_local.fc2.parameters()) + list(self.actor_local.fc3.parameters())
+        self.actor_optimizer = optim.Adam(fc_params, lr=LR_ACTOR)
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(action_size).to(device)
         self.critic_target = Critic(action_size).to(device)
-        self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        fc_params_ = list(self.critic_local.fc1.parameters()) + list(self.critic_local.fc2.parameters()) + list(self.critic_local.fc3.parameters())
+        self.critic_optimizer = optim.Adam(fc_params_, lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
         # Noise process
         self.noise = OUNoise(action_size)
