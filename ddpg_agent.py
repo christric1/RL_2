@@ -140,7 +140,7 @@ class DDPGAgent():
         self.soft_update(self.critic_local, self.critic_target, TAU)
         self.soft_update(self.actor_local, self.actor_target, TAU)               
 
-        return critic_loss, actor_loss      
+        return critic_loss.item(), actor_loss.item()      
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
