@@ -29,7 +29,7 @@ class Actor(nn.Module):
 
         self.vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
         for param in self.vgg.parameters():
-            param.requires_grad_(False)
+            param.requires_grad = False
 
         self.fc1 = nn.Linear(512 * 7 * 7, 2048)
         self.fc2 = nn.Linear(2048, 2048)
@@ -64,7 +64,7 @@ class Critic(nn.Module):
 
         self.vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
         for param in self.vgg.parameters():
-            param.requires_grad_(False)
+            param.requires_grad = False
             
         self.fc1 = nn.Linear(512 * 7 * 7 + action_size, 2048)
         self.fc2 = nn.Linear(2048, 2048)
