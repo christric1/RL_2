@@ -27,9 +27,15 @@ class Actor(nn.Module):
         """
         super(Actor, self).__init__()
 
+<<<<<<< HEAD
         self.resnet18 = torch.nn.Sequential(*(list(models.resnet18(weights=models.ResNet18_Weights.DEFAULT).children())[:-2]))
         for param in self.resnet18.parameters():
-            param.requires_grad_(False)
+            param.requires_grad = False
+=======
+        self.vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
+        for param in self.vgg.parameters():
+            param.requires_grad = False
+>>>>>>> 372182f01b2e2e567ed2001be095a471b82448f5
 
         self.fc1 = nn.Linear(512 * 7 * 7, 1024)
         self.fc2 = nn.Linear(1024, 1024)
@@ -64,7 +70,7 @@ class Critic(nn.Module):
 
         self.resnet18 = torch.nn.Sequential(*(list(models.resnet18(weights=models.ResNet18_Weights.DEFAULT).children())[:-2]))
         for param in self.resnet18.parameters():
-            param.requires_grad_(False)
+            param.requires_grad = False
             
         self.fc1 = nn.Linear(512 * 7 * 7 + action_size, 1024)
         self.fc2 = nn.Linear(1024, 1024)
