@@ -27,13 +27,13 @@ class Actor(nn.Module):
         """
         super(Actor, self).__init__()
 
-        self.vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
-        for param in self.vgg.parameters():
+        self.resnet18 = torch.nn.Sequential(*(list(models.resnet18(weights=models.ResNet18_Weights.DEFAULT).children())[:-2]))
+        for param in self.resnet18.parameters():
             param.requires_grad_(False)
 
-        self.fc1 = nn.Linear(512 * 7 * 7, 2048)
-        self.fc2 = nn.Linear(2048, 2048)
-        self.fc3 = nn.Linear(2048, action_size)  
+        self.fc1 = nn.Linear(512 * 7 * 7, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+        self.fc3 = nn.Linear(1024, action_size)  
 
         self.reset_parameters()
 
@@ -44,7 +44,7 @@ class Actor(nn.Module):
 
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
-        x = self.vgg(state)
+        x = self.resnet18(state)
         x = x.view(-1, 512 * 7 * 7)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
@@ -62,13 +62,13 @@ class Critic(nn.Module):
         """
         super(Critic, self).__init__()
 
-        self.vgg = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
-        for param in self.vgg.parameters():
+        self.resnet18 = torch.nn.Sequential(*(list(models.resnet18(weights=models.ResNet18_Weights.DEFAULT).children())[:-2]))
+        for param in self.resnet18.parameters():
             param.requires_grad_(False)
             
-        self.fc1 = nn.Linear(512 * 7 * 7 + action_size, 2048)
-        self.fc2 = nn.Linear(2048, 2048)
-        self.fc3 = nn.Linear(2048, 1)
+        self.fc1 = nn.Linear(512 * 7 * 7 + action_size, 1024)
+        self.fc2 = nn.Linear(1024, 1024)
+        self.fc3 = nn.Linear(1024, 1)
 
         self.reset_parameters()
 
@@ -79,7 +79,7 @@ class Critic(nn.Module):
 
     def forward(self, state, action):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
-        x = self.vgg(state)
+        x = self.resnet18(state)
         x = x.view(-1, 512 * 7 * 7)
         x = torch.cat([x, action], dim=1)
         x = F.leaky_relu(self.fc1(x))

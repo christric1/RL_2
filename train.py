@@ -4,7 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torch.utils.tensorboard import SummaryWriter
 
 from utils.general import increment_path
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     # Result directary
     save_dir = increment_path(Path(opt.project) / opt.name)  # increment run
-    writer = SummaryWriter(save_dir + "/runs")
+    writer = SummaryWriter(save_dir + "/metrics")
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -46,9 +46,12 @@ if __name__ == '__main__':
 
     # Trainloader & Testloader
     trainDataset = OD_Dataset(opt.dataset_path, mode='train')
-    valDataset = OD_Dataset(opt.dataset_path, mode='valid')
-    trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
-    valDataloader = DataLoader(valDataset, batch_size=1, shuffle=True)
+    # valDataset = OD_Dataset(opt.dataset_path, mode='valid')
+    # trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
+    # valDataloader = DataLoader(valDataset, batch_size=1, shuffle=True)
+    subset_indices = random.sample(range(len(trainDataset)), 5000)
+    partial_dataset = Subset(trainDataset, subset_indices)
+    trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
     #---------------------------------------#
     #   Start training
@@ -65,7 +68,7 @@ if __name__ == '__main__':
             img = img.squeeze(dim=0)
             target = target.squeeze(dim=0)
             labels, boxs = target[:, 0], target[:, 1:]
-                        
+
             for step in range(opt.steps):
                 '''
                     action : [contrast, saturation, brightness]
@@ -116,69 +119,14 @@ if __name__ == '__main__':
                     axs[2].imshow(TF.to_pil_image(adjust_img))
                     axs[2].set_title('adjust image')      
                     plt.savefig('image.jpg')
+        # end batch -------------------------------------------------------------
+    # end epoch ---------------------------------------------------------
 
-            # end batch -------------------------------------------------------------
-        # end epoch ---------------------------------------------------------
-
-        # Validation
-        agent.eval()
-        for i, data in enumerate(valDataloader):
-            img, target = data
-            labels, boxs = target["labels"], target["boxes"]
-            imgShape = img.shape[2], img.shape[3]
-
-            # the iou part
-            batchIou = []
-            region_mask = np.ones(imgShape)
-            gt_masks = genBoxFromAnnotation(boxs[0], imgShape)
-
-            # choose the max bouding box
-            iou = findMaxBox(gt_masks, region_mask)
-
-            # the initial part
-            region_image = img
-            size_mask = imgShape
-            offset = (0, 0)
-            history_vector = torch.zeros((4, 6), device=device)
-            state = get_state(region_image, history_vector, backbone, device)
-            done = False
-
-            for step in range(opt.steps):
-                # Select action, the author force terminal action if case actual IoU is higher than 0.5
-                if iou > 0.5:
-                    action = 5
-                else:
-                    action = agent.select_action(state)
-
-                # Perform the action and observe new state
-                if action == 5:
-                    next_state = None
-                    reward = get_reward_trigger(iou)
-                    done = True
-                else:
-                    offset, region_image, size_mask, region_mask = get_crop_image_and_mask(imgShape, offset,
-                                                                    region_image, size_mask, action)
-                    # Get next state
-                    history_vector = update_history_vector(history_vector, action).to(device)
-                    next_state = get_state(region_image, history_vector, backbone, device)
-                    
-                    # find the max bounding box in the region image
-                    new_iou = findMaxBox(gt_masks, region_mask)
-                    reward = get_reward_movement(iou, new_iou)
-                    iou = new_iou
-
-                # Move to the next state
-                state = next_state
-
-                if done:
-                    break
-            
-            # Record result
-            val_cnt += 1
-            writer.add_scalar('IoU/Val', iou, val_cnt)
+    # Validation
+    # agent.eval()
 
     # End training ---------------------------------------------------------
     print("End Training\n")
     
     # Save model
-    torch.save(agent.dqn, save_dir + "/model.pth")
+    agent.save()

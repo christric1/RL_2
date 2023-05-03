@@ -36,33 +36,54 @@ class yolo:
         self.stride = int(self.model.stride.max())  # model stride
         self.imgsz = check_img_size(640, s=self.stride)  # check img_size
 
-    def detectImg(self, image: Tensor, labels: Tensor) -> str:
+    def detectImg(self, image: Tensor, targets: Tensor) -> str:
         """
         Args
-            image  : [1, height, width]
+            image  : [1, height, width] || [batch, 1, height, width]
             targets : [label, xmin, ymin, xmax, ymax]
 
         Return 
             avg_iou : float 
             F1_score : float
         """
-        # Resize and pad image while meeting stride-multiple constraints
-        img_ = image.permute(1, 2, 0).numpy()
-        img_ = (img_[:, :, ::-1] * 255).astype(np.uint8)    # to BGR
-        Padded_image = letterbox(img_, self.imgsz, stride=self.stride)[0]
-        Padded_image = TF.to_tensor(Padded_image)[[2, 1, 0], :, :].unsqueeze(dim=0).to(self.device)     # to tensor, to RGB, add dim=0
+        # ------------------------------------------------------------------ # 
+        #   Resize and pad image while meeting stride-multiple constraints
+        # ------------------------------------------------------------------ #
+        targets = targets.unsqueeze(0) if targets.dim() == 2 else targets
+        img = image.unsqueeze(0) if image.dim() == 3 else image
+        img = img.permute(0, 2, 3, 1).numpy()  # to [batch, height, width, channels]
+        img = (img[:, :, :, ::-1] * 255).astype(np.uint8)
+        img_shape = img.shape[1:3]
 
-        # Get the prediction
-        with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
-            out = self.model(Padded_image)[0]
+        padded_images = []
+        for i in range(img.shape[0]):
+            padded_image = letterbox(img[i], self.imgsz, stride=self.stride, scaleFill=True, auto=False)[0]
+            padded_image = TF.to_tensor(padded_image)[[2, 1, 0], :, :].to(self.device)   
+            padded_images.append(padded_image)
 
-        # Apply NMS
+        if len(padded_images) > 1:
+            padded_images = torch.stack(padded_images).to(self.device)
+        else:
+            padded_images = padded_images[0].unsqueeze(dim=0)
+
+        # ------------------------------------------------------------------ # 
+        #   Get the prediction
+        # ------------------------------------------------------------------ #
+        with torch.no_grad(): 
+            out = self.model(padded_images)[0]
+
+        # ------------------------------------------------------------------ # 
+        #   Apply NMS
+        # ------------------------------------------------------------------ #
         NMS_out = non_max_suppression(out, conf_thres=0.25, iou_thres=0.45)
 
-        # Process detections
+        # ------------------------------------------------------------------ # 
+        #   Process detections
+        # ------------------------------------------------------------------ #
         stats = []
         label_iou = []
         for si, pred in enumerate(NMS_out):
+            labels = targets[si]
             nl = len(labels)
             tcls = labels[:, 0].tolist() if nl else []  # target class
 
@@ -72,7 +93,7 @@ class yolo:
 
             # Predictions : [xmin, ymin, xmax, ymax, obj, cls]
             predn = pred.clone()
-            scale_coords(Padded_image.shape[2:], predn[:, :4], image.shape[1:])  # native-space pred
+            scale_coords(padded_images.shape[2:], predn[:, :4], img_shape)  # native-space pred
 
             # Assign all predictions as incorrect
             correct = torch.zeros(pred.shape[0], self.niou, dtype=torch.bool, device=self.device)
@@ -81,7 +102,7 @@ class yolo:
 
             # target boxes
             tbox = labels[:, 1:].to(self.device)
-            scale_boxs(tbox, image.shape[1:])
+            scale_boxs(tbox, img_shape)
 
             # Per target class
             for cls in torch.unique(tcls_tensor):
@@ -107,8 +128,10 @@ class yolo:
 
             # Append statistics (correct, conf, pcls, tcls)           
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
-            
-        # Evaluation metric
+        
+        # ------------------------------------------------------------------ # 
+        #   Evaluation metric
+        # ------------------------------------------------------------------ #
         stats = [np.concatenate(x, 0) for x in zip(*stats)]
         p, r, ap, f1, ap_class = ap_per_class(*stats)
         avg_iou = torch.cat(label_iou).numpy().mean() if len(label_iou) > 0 else 0

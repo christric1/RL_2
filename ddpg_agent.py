@@ -44,7 +44,7 @@ def preprocess(img: torch.Tensor):
 class DDPGAgent():
     """Interacts with and learns from the environment."""
     
-    def __init__(self, action_size):
+    def __init__(self, action_size, save_dir):
         """Initialize an Agent object.
         
         Params
@@ -53,6 +53,7 @@ class DDPGAgent():
             random_seed (int): random seed
         """
         self.action_size = action_size
+        self.save_dir = save_dir
 
         # Actor Network (w/ Target Network)
         self.actor_local = Actor(action_size).to(device)
@@ -118,7 +119,7 @@ class DDPGAgent():
         actions_next = self.actor_target(next_states)
         Q_targets_next = self.critic_target(next_states, actions_next)
         # Compute Q targets for current states (y_i)
-        Q_targets = rewards + (gamma * Q_targets_next * (1))
+        Q_targets = rewards + (gamma * Q_targets_next)
         # Compute critic loss
         Q_expected = self.critic_local(states, actions)
         critic_loss = F.mse_loss(Q_expected, Q_targets)
@@ -153,6 +154,10 @@ class DDPGAgent():
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
+
+    def save(self):
+        torch.save(self.actor_local.state_dict(), self.save_dir + 'actor.pth')
+        torch.save(self.critic_local.state_dict(), self.save_dir + 'critic.pth')
 
 
 class OUNoise:
