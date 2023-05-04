@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 
 
-BUFFER_SIZE = int(1e6)  # replay buffer size
+BUFFER_SIZE = int(2e3)  # replay buffer size
 BATCH_SIZE = 32         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters

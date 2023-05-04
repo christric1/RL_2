@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='models/yolov7_backbone_weights.pth', help='initial weights path')
     parser.add_argument('--hyp', type=str, default='data/hyp.yaml', help='hyperparameters path')
     parser.add_argument('--dataset-path', type=str, default='Pascal_2012')
-    parser.add_argument('--epochs', type=int, default=300)
+    parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--steps', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     # Result directary
-    save_dir = increment_path(Path(opt.project) / opt.name)  # increment run
+    save_dir = increment_path(Path(opt.project) / opt.name, exist_ok=False)  # increment run
     writer = SummaryWriter(save_dir + "/metrics")
 
     # Device
@@ -41,23 +41,25 @@ if __name__ == '__main__':
 
     # Create dqn model & YOLOv7
     obs_dim, action_dim = 8*8*1024 + 6*4, 3
-    agent = DDPGAgent(action_dim)
+    agent = DDPGAgent(action_dim, save_dir)
     yolo_model = yolo()
 
     # Trainloader & Testloader
     trainDataset = OD_Dataset(opt.dataset_path, mode='train')
     # valDataset = OD_Dataset(opt.dataset_path, mode='valid')
-    # trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
-    # valDataloader = DataLoader(valDataset, batch_size=1, shuffle=True)
-    subset_indices = random.sample(range(len(trainDataset)), 5000)
-    partial_dataset = Subset(trainDataset, subset_indices)
-    trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
     #---------------------------------------#
     #   Start training
     #---------------------------------------#
     update_cnt = 0
     for epoch in range(opt.epochs):
+        '''
+            Random split dataset
+        '''
+        subset_indices = random.sample(range(len(trainDataset)), 1000)
+        partial_dataset = Subset(trainDataset, subset_indices)
+        trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
+
         pbar = tqdm(enumerate(trainDataloader), total=len(trainDataloader))
         for i, data in pbar:
             '''
