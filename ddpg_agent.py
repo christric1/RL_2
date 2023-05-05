@@ -12,6 +12,7 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as TF
 
 
+# HyperParemeter
 BUFFER_SIZE = int(2e3)  # replay buffer size
 BATCH_SIZE = 32         # minibatch size
 GAMMA = 0.99            # discount factor
@@ -44,7 +45,7 @@ def preprocess(img: torch.Tensor):
 class DDPGAgent():
     """Interacts with and learns from the environment."""
     
-    def __init__(self, action_size, save_dir):
+    def __init__(self, action_size, save_dir, buffer_size=2e3, batch_size=32):
         """Initialize an Agent object.
         
         Params
@@ -71,7 +72,7 @@ class DDPGAgent():
         self.noise = OUNoise(action_size)
 
         # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE)
+        self.memory = ReplayBuffer(action_size, buffer_size, batch_size)
     
     def step(self, state, action, reward, next_state):
         """Save experience in replay memory, and use random sample from buffer to learn."""

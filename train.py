@@ -20,15 +20,15 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='models/yolov7_backbone_weights.pth', help='initial weights path')
     parser.add_argument('--hyp', type=str, default='data/hyp.yaml', help='hyperparameters path')
     parser.add_argument('--dataset-path', type=str, default='Pascal_2012')
-    parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--steps', type=int, default=1)
-    parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
+    parser.add_argument('--batch-size', type=int, default=32, help='total batch size for all GPUs')
+    parser.add_argument('--buffer-size', type=int, default=2e3, help='buffer size')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
     parser.add_argument('--name', default='exp', help='save to project/name')
-    parser.add_argument('--img-size', type=int, default=[256, 256], help='image sizes')
-    parser.add_argument('--plot', type=bool, default=False, help='plot?')
-    parser.add_argument('--writer', type=bool, default=True, help='writer?')
-    
+    parser.add_argument('--plot', action='store_true', help='plot?')
+    parser.add_argument('--no-writer', dest='writer', action='store_false', help='writer?')
+    parser.set_defaults(writer=True)
     opt = parser.parse_args()
 
     # Result directary
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # Create dqn model & YOLOv7
     obs_dim, action_dim = 8*8*1024 + 6*4, 3
-    agent = DDPGAgent(action_dim, save_dir)
+    agent = DDPGAgent(action_dim, save_dir, memory_size=opt.buffer_size, batch_size=opt.batch_size)
     yolo_model = yolo()
 
     # Trainloader & Testloader
@@ -123,6 +123,7 @@ if __name__ == '__main__':
                     plt.savefig('image.jpg')
         # end batch -------------------------------------------------------------
     # end epoch ---------------------------------------------------------
+    del trainDataloader, partial_dataset
 
     # Validation
     # agent.eval()
