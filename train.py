@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # Create dqn model & YOLOv7
     obs_dim, action_dim = 8*8*1024 + 6*4, 3
-    agent = DDPGAgent(action_dim, save_dir, memory_size=opt.buffer_size, batch_size=opt.batch_size)
+    agent = DDPGAgent(action_dim, save_dir, buffer_size=opt.buffer_size, batch_size=opt.batch_size)
     yolo_model = yolo()
 
     # Trainloader & Testloader
