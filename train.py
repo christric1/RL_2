@@ -121,9 +121,10 @@ if __name__ == '__main__':
                     axs[2].imshow(TF.to_pil_image(adjust_img))
                     axs[2].set_title('adjust image')      
                     plt.savefig('image.jpg')
+
         # end batch -------------------------------------------------------------
+        del trainDataloader, partial_dataset
     # end epoch ---------------------------------------------------------
-    del trainDataloader, partial_dataset
 
     # Validation
     # agent.eval()
