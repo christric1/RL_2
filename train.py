@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 from tqdm import tqdm
+import psutil
+import os
 import matplotlib.pyplot as plt
 
 import torch
@@ -15,6 +17,19 @@ from detect import yolo
 from reinforcement import *
 
 
+def record_training(save_dir, epochs, updateCnt):
+    doc = "record.txt"
+    with open(os.path.join(save_dir, doc), 'w') as f:
+        f.write(str(epochs) + " " + str(updateCnt))
+
+
+def print_memory_usage():
+    process = psutil.Process(os.getpid())
+    mem_info = process.memory_info()
+    print(f"Resident memory (RSS): {mem_info.rss / 1024**2:.2f} MB")
+    print(f"Virtual memory (VMS): {mem_info.vms / 1024**2:.2f} MB")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='models/yolov7_backbone_weights.pth', help='initial weights path')
@@ -23,7 +38,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--steps', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=32, help='total batch size for all GPUs')
-    parser.add_argument('--buffer-size', type=int, default=2e3, help='buffer size')
+    parser.add_argument('--buffer-size', type=int, default=2000, help='buffer size')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--plot', action='store_true', help='plot?')
@@ -123,14 +138,14 @@ if __name__ == '__main__':
                     plt.savefig('image.jpg')
 
         # end batch -------------------------------------------------------------
+        agent.save()    # Save model
+        record_training(save_dir, epoch, update_cnt)    # Save training record
         del trainDataloader, partial_dataset
-    # end epoch ---------------------------------------------------------
 
+    # end epoch ---------------------------------------------------------
+    
     # Validation
     # agent.eval()
 
     # End training ---------------------------------------------------------
     print("End Training\n")
-    
-    # Save model
-    agent.save()
