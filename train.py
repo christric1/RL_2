@@ -41,33 +41,50 @@ if __name__ == '__main__':
     parser.add_argument('--buffer-size', type=int, default=2000, help='buffer size')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
     parser.add_argument('--name', default='exp', help='save to project/name')
+    parser.add_argument('--resume', type=str, help='resume?')
     parser.add_argument('--plot', action='store_true', help='plot?')
     parser.add_argument('--no-writer', dest='writer', action='store_false', help='writer?')
     parser.set_defaults(writer=True)
     opt = parser.parse_args()
 
-    # Result directary
-    save_dir = increment_path(Path(opt.project) / opt.name, exist_ok=False)  # increment run
-    writer = SummaryWriter(save_dir + "/metrics")
-
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("device: ", device)
 
-    # Create dqn model & YOLOv7
-    obs_dim, action_dim = 8*8*1024 + 6*4, 3
-    agent = DDPGAgent(action_dim, save_dir, buffer_size=opt.buffer_size, batch_size=opt.batch_size)
+    # Resume
+    if opt.resume:
+        save_dir = opt.resume
+        timestamp = os.listdir(save_dir + "/metrics")[0].split(".")[3]
+        writer = SummaryWriter(log_dir=save_dir + "/metrics")
+
+        action_dim = 3
+        agent = DDPGAgent(action_dim, save_dir, buffer_size=opt.buffer_size, batch_size=opt.batch_size)
+        agent.load(save_dir)
+        
+        with open(os.path.join(save_dir, "record.txt")) as f:
+            data = f.readline().split()
+            init_epoch, update_cnt = int(data[0]), int(data[1])
+
+    else:
+        # Result directary
+        save_dir = increment_path(Path(opt.project) / opt.name, exist_ok=False)  # increment run
+        writer = SummaryWriter(save_dir + "/metrics")
+
+        # Create dqn model & YOLOv7
+        action_dim = 3
+        agent = DDPGAgent(action_dim, save_dir, buffer_size=opt.buffer_size, batch_size=opt.batch_size)
+        init_epoch, update_cnt = 0, 0
+
+    # yolov7 model
     yolo_model = yolo()
 
     # Trainloader & Testloader
     trainDataset = OD_Dataset(opt.dataset_path, mode='train')
-    # valDataset = OD_Dataset(opt.dataset_path, mode='valid')
 
     #---------------------------------------#
     #   Start training
     #---------------------------------------#
-    update_cnt = 0
-    for epoch in range(opt.epochs):
+    for epoch in range(init_epoch, opt.epochs):
         '''
             Random split dataset
         '''
@@ -139,7 +156,7 @@ if __name__ == '__main__':
 
         # end batch -------------------------------------------------------------
         agent.save()    # Save model
-        record_training(save_dir, epoch, update_cnt)    # Save training record
+        record_training(save_dir, epoch+1, update_cnt)    # Save training record
         del trainDataloader, partial_dataset
 
     # end epoch ---------------------------------------------------------

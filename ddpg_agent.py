@@ -157,9 +157,15 @@ class DDPGAgent():
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
     def save(self):
-        torch.save(self.actor_local.state_dict(), self.save_dir + 'actor.pth')
-        torch.save(self.critic_local.state_dict(), self.save_dir + 'critic.pth')
+        torch.save(self.actor_local.state_dict(), self.save_dir + '/actor.pth')
+        torch.save(self.critic_local.state_dict(), self.save_dir + '/critic.pth')
 
+    def load(self, directory):
+        self.actor_local.load_state_dict(torch.load(directory + '/actor.pth'))
+        self.critic_local.load_state_dict(torch.load(directory + '/critic.pth'))
+        print("====================================")
+        print("model has been loaded...")
+        print("====================================")
 
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
