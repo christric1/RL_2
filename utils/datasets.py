@@ -371,7 +371,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         #self.albumentations = Albumentations() if augment else None
 
         if self.ddpg_Transform:
-            action_dim = 3
+            action_dim = 4
             weight_dir = "runs/train/exp"
             self.agent = DDPGAgent(action_dim)
             self.agent.load(weight_dir)

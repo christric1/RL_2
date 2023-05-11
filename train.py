@@ -53,7 +53,7 @@ if __name__ == '__main__':
         save_dir = opt.resume
         writer = SummaryWriter(log_dir=save_dir + "/metrics")
 
-        action_dim = 3
+        action_dim = 4
         agent = DDPGAgent(action_dim, save_dir, buffer_size=opt.buffer_size, batch_size=opt.batch_size)
         agent.load(save_dir)
         
