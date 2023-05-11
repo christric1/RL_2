@@ -45,7 +45,7 @@ def preprocess(img: torch.Tensor):
 class DDPGAgent():
     """Interacts with and learns from the environment."""
     
-    def __init__(self, action_size, save_dir, buffer_size=2e3, batch_size=32):
+    def __init__(self, action_size, save_dir='./', buffer_size=2000, batch_size=32):
         """Initialize an Agent object.
         
         Params

@@ -76,7 +76,7 @@ class OD_Dataset(Dataset):
         # Read Annitation
         annotation_path = os.path.join(self.annotations_dir, self.data_names[index] + ".txt")
         target = self.read_txt(annotation_path)
-        target[:, 0] = np.array([map_index_pascal[i] for i in target[:, 0].astype(int)]).astype(float) # map
+        # target[:, 0] = np.array([map_index_pascal[i] for i in target[:, 0].astype(int)]).astype(float) # map
 
         # Transform to tensor
         target_tensor = torch.as_tensor(target)

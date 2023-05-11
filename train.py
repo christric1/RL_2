@@ -32,9 +32,7 @@ def print_memory_usage():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='models/yolov7_backbone_weights.pth', help='initial weights path')
-    parser.add_argument('--hyp', type=str, default='data/hyp.yaml', help='hyperparameters path')
-    parser.add_argument('--dataset-path', type=str, default='Pascal_2012')
+    parser.add_argument('--dataset-path', type=str, default='coco')
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--steps', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=32, help='total batch size for all GPUs')
@@ -43,8 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--resume', type=str, help='resume?')
     parser.add_argument('--plot', action='store_true', help='plot?')
-    parser.add_argument('--no-writer', dest='writer', action='store_false', help='writer?')
-    parser.set_defaults(writer=True)
+    parser.add_argument('--split_dataset', type=int, help='split dataset')
     opt = parser.parse_args()
 
     # Device
@@ -54,7 +51,6 @@ if __name__ == '__main__':
     # Resume
     if opt.resume:
         save_dir = opt.resume
-        timestamp = os.listdir(save_dir + "/metrics")[0].split(".")[3]
         writer = SummaryWriter(log_dir=save_dir + "/metrics")
 
         action_dim = 3
@@ -71,7 +67,7 @@ if __name__ == '__main__':
         writer = SummaryWriter(save_dir + "/metrics")
 
         # Create dqn model & YOLOv7
-        action_dim = 3
+        action_dim = 4
         agent = DDPGAgent(action_dim, save_dir, buffer_size=opt.buffer_size, batch_size=opt.batch_size)
         init_epoch, update_cnt = 0, 0
 
@@ -80,6 +76,7 @@ if __name__ == '__main__':
 
     # Trainloader & Testloader
     trainDataset = OD_Dataset(opt.dataset_path, mode='train')
+    trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
 
     #---------------------------------------#
     #   Start training
@@ -88,9 +85,10 @@ if __name__ == '__main__':
         '''
             Random split dataset
         '''
-        subset_indices = random.sample(range(len(trainDataset)), 1000)
-        partial_dataset = Subset(trainDataset, subset_indices)
-        trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
+        if opt.split_dataset:
+            subset_indices = random.sample(range(len(trainDataset)), 1000)
+            partial_dataset = Subset(trainDataset, subset_indices)
+            trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
         pbar = tqdm(enumerate(trainDataloader), total=len(trainDataloader))
         for i, data in pbar:
@@ -138,11 +136,11 @@ if __name__ == '__main__':
                 pbar.set_postfix({"Critic_loss": "{:.4f}".format(critic_loss),
                                   "Actor_loss": "{:.4f}".format(actor_loss)})
                 
-                if opt.writer:
-                    writer.add_scalar('Critic_loss/train', critic_loss, update_cnt)
-                    writer.add_scalar('Actor_loss/train', actor_loss, update_cnt)
-                    writer.add_scalar('Reward/train', reward, update_cnt)
-                    update_cnt += 1 
+                # Writer
+                writer.add_scalar('Critic_loss/train', critic_loss, update_cnt)
+                writer.add_scalar('Actor_loss/train', actor_loss, update_cnt)
+                writer.add_scalar('Reward/train', reward, update_cnt)
+                update_cnt += 1 
 
                 if opt.plot:
                     fig, axs = plt.subplots(1, 3, figsize=(10, 5))
@@ -157,12 +155,8 @@ if __name__ == '__main__':
         # end batch -------------------------------------------------------------
         agent.save()    # Save model
         record_training(save_dir, epoch+1, update_cnt)    # Save training record
-        del trainDataloader, partial_dataset
 
     # end epoch ---------------------------------------------------------
-    
-    # Validation
-    # agent.eval()
 
     # End training ---------------------------------------------------------
     print("End Training\n")

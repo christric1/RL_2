@@ -130,28 +130,24 @@ def transform_action(action, range_: list):
 
 def modify_image(image: Tensor, brightness_factor: float, saturation_factor: float, contrast_factor: float):
     """
-        Adjusting the contrast, saturation, and brightness of an image based on three coefficients.
+        Adjusting the contrast, saturation, brightness and sharpness
     """
-    # Adjust saturation & brightness & contrast
+    # Adjust saturation & brightness & contrast & sharpness
     bright_img = TF.adjust_brightness(image, brightness_factor)
     saturation_img = TF.adjust_saturation(bright_img, saturation_factor)
     contrast_img = TF.adjust_contrast(saturation_img, contrast_factor)
+    # sharpness_img = TF.adjust_sharpness(contrast_img, sharpness_factor)
     
     return contrast_img
 
-def distortion_image(image: Tensor, max_kernel_size=5, max_noise_std=0.01):
+def distortion_image(image: Tensor, max_kernel_size=5):
     '''
-        Apply random blurring, and noise.
+        Apply random blurring
     '''
     # Random blurring
     kernel_size = torch.randint(1, max_kernel_size+1, size=(1,)).item()
     kernel_size += kernel_size % 2 - 1  # Ensure odd kernel size
     image = TF.gaussian_blur(image, kernel_size)
-
-    # Random noise
-    std = torch.rand(size=(1,)).item() * max_noise_std
-    noise = torch.randn_like(image) * std
-    image = image + noise
 
     return image
 

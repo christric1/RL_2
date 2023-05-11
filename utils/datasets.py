@@ -22,13 +22,17 @@ from tqdm import tqdm
 
 import pickle
 from copy import deepcopy
+from ddpg_agent import DDPGAgent
 #from pycocotools import mask as maskUtils
 from torchvision.utils import save_image
+import torchvision.transforms.functional as TF
 from torchvision.ops import roi_pool, roi_align, ps_roi_pool, ps_roi_align
 
 from utils.general import check_requirements, xyxy2xywh, xywh2xyxy, xywhn2xyxy, xyn2xy, segment2box, segments2boxes, \
     resample_segments, clean_str
 from utils.torch_utils import torch_distributed_zero_first
+from reinforcement import transform_action, modify_image
+
 
 # Parameters
 help_url = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'
@@ -63,7 +67,7 @@ def exif_size(img):
 
 
 def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=False, cache=False, pad=0.0, rect=False,
-                      rank=-1, world_size=1, workers=8, image_weights=False, quad=False, prefix=''):
+                      rank=-1, world_size=1, workers=8, image_weights=False, quad=False, prefix='', ddpg_Transform=False):
     # Make sure only the first process in DDP process the dataset first, and the following others can use the cache
     with torch_distributed_zero_first(rank):
         dataset = LoadImagesAndLabels(path, imgsz, batch_size,
@@ -75,7 +79,8 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
                                       stride=int(stride),
                                       pad=pad,
                                       image_weights=image_weights,
-                                      prefix=prefix)
+                                      prefix=prefix,
+                                      ddpg_Transform=ddpg_Transform)
 
     batch_size = min(batch_size, len(dataset))
     nw = min([os.cpu_count() // world_size, batch_size if batch_size > 1 else 0, workers])  # number of workers
@@ -84,7 +89,7 @@ def create_dataloader(path, imgsz, batch_size, stride, opt, hyp=None, augment=Fa
     # Use torch.utils.data.DataLoader() if dataset.properties will update during training else InfiniteDataLoader()
     dataloader = loader(dataset,
                         batch_size=batch_size,
-                        num_workers=nw,
+                        num_workers=0,
                         sampler=sampler,
                         pin_memory=True,
                         collate_fn=LoadImagesAndLabels.collate_fn4 if quad else LoadImagesAndLabels.collate_fn)
@@ -352,7 +357,7 @@ def img2label_paths(img_paths):
 
 class LoadImagesAndLabels(Dataset):  # for training/testing
     def __init__(self, path, img_size=640, batch_size=16, augment=False, hyp=None, rect=False, image_weights=False,
-                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix=''):
+                 cache_images=False, single_cls=False, stride=32, pad=0.0, prefix='', ddpg_Transform=False):
         self.img_size = img_size
         self.augment = augment
         self.hyp = hyp
@@ -362,7 +367,14 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
         self.mosaic_border = [-img_size // 2, -img_size // 2]
         self.stride = stride
         self.path = path        
+        self.ddpg_Transform = ddpg_Transform
         #self.albumentations = Albumentations() if augment else None
+
+        if self.ddpg_Transform:
+            action_dim = 3
+            weight_dir = "runs/train/exp"
+            self.agent = DDPGAgent(action_dim)
+            self.agent.load(weight_dir)
 
         try:
             f = []  # image files
@@ -555,12 +567,18 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
                 labels = np.concatenate((labels, labels2), 0)
 
         else:
-            # Load image
+            # Load image (159, 640, 3) (164, 640, 3) (169, 640, 3) (174, 640, 3)
             img, (h0, w0), (h, w) = load_image(self, index)
+
+            if self.ddpg_Transform:
+                action = self.agent.act(TF.to_tensor(img).flip(dims=[0]).unsqueeze(dim=0))
+                trans_action = transform_action(action[0], [0.5, 1.5])
+                adjust_img = modify_image(TF.to_tensor(img), *trans_action)
+                img = (adjust_img.permute(1, 2, 0).numpy()[:, :, ::-1] * 255).astype(np.uint8)
 
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
-            img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment)
+            img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment) # (192, 672, 3) (192, 672, 3) (192, 672, 3)
             shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
 
             labels = self.labels[index].copy()
@@ -668,7 +686,7 @@ def load_image(self, index):
     img = self.imgs[index]
     if img is None:  # not cached
         path = self.img_files[index]
-        img = cv2.imread(path)  # BGR
+        img = cv2.imread(path)  # BGR (159, 640, 3) (164, 640, 3)
         assert img is not None, 'Image Not Found ' + path
         h0, w0 = img.shape[:2]  # orig hw
         r = self.img_size / max(h0, w0)  # resize image to img_size
