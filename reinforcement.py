@@ -128,7 +128,7 @@ def transform_action(action, range_: list):
     result_lst = [range_[0] + i * delta for i in range(n)]
     return result_lst
 
-def modify_image(image: Tensor, brightness_factor: float, saturation_factor: float, contrast_factor: float):
+def modify_image(image: Tensor, brightness_factor: float, saturation_factor: float, contrast_factor: float, sharpness_factor: float):
     """
         Adjusting the contrast, saturation, brightness and sharpness
     """
@@ -136,9 +136,9 @@ def modify_image(image: Tensor, brightness_factor: float, saturation_factor: flo
     bright_img = TF.adjust_brightness(image, brightness_factor)
     saturation_img = TF.adjust_saturation(bright_img, saturation_factor)
     contrast_img = TF.adjust_contrast(saturation_img, contrast_factor)
-    # sharpness_img = TF.adjust_sharpness(contrast_img, sharpness_factor)
+    sharpness_img = TF.adjust_sharpness(contrast_img, sharpness_factor)
     
-    return contrast_img
+    return sharpness_img
 
 def distortion_image(image: Tensor, max_kernel_size=5):
     '''
