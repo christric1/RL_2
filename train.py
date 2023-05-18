@@ -41,7 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--resume', type=str, help='resume?')
     parser.add_argument('--plot', action='store_true', help='plot?')
-    parser.add_argument('--split_dataset', type=int, help='split dataset')
+    parser.add_argument('--split_dataset', default='1000', type=int, help='split dataset')
     opt = parser.parse_args()
 
     # Device
@@ -86,7 +86,7 @@ if __name__ == '__main__':
             Random split dataset
         '''
         if opt.split_dataset:
-            subset_indices = random.sample(range(len(trainDataset)), 1000)
+            subset_indices = random.sample(range(len(trainDataset)), opt.split_dataset)
             partial_dataset = Subset(trainDataset, subset_indices)
             trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
@@ -116,15 +116,15 @@ if __name__ == '__main__':
 
                 # With RL Score
                 action = agent.act(distortion_img.unsqueeze(dim=0))
-                trans_action = transform_action(action[0], [0.5, 1.5])
+                trans_action = transform_action(action[0], 0.7, 1.3)
                 adjust_img = modify_image(img, *trans_action)
                 Avg_iou_RL, F1_score_RL = yolo_model.detectImg(adjust_img, target)
                 RL_score = get_score(Avg_iou_RL, F1_score_RL, GAMMA)
 
-                reward = get_reward(RL_score, Origin_score, Distortion_score)
+                reward = get_reward(RL_score, Origin_score, Distortion_score, 0.01)
                 
                 # Push experient to memory
-                state = img
+                state = distortion_img
                 next_state = adjust_img
                 critic_loss, actor_loss = agent.step(state, action, reward, next_state)
                 

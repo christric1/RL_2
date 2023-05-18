@@ -119,14 +119,11 @@ class ReplayMemory(object):
         return len(self.memory)
     
 
-def transform_action(action, range_: list):
+def transform_action(action, x, y):
     '''
         Map actions to a specified range
     '''
-    n = len(action)
-    delta = (range_[1] - range_[0]) / (n - 1)
-    result_lst = [range_[0] + i * delta for i in range(n)]
-    return result_lst
+    return x + action * (y - x)
 
 def modify_image(image: Tensor, brightness_factor: float, saturation_factor: float, contrast_factor: float, sharpness_factor: float):
     """
@@ -154,5 +151,7 @@ def distortion_image(image: Tensor, max_kernel_size=5):
 def get_score(Avg_iou, F1_score, GAMMA):
     return GAMMA * Avg_iou + (1-GAMMA) * F1_score
 
-def get_reward(RL_score, Origin_score, Distortion_score):
-    return RL_score*2 - Origin_score - Distortion_score
+def get_reward(RL_score, Origin_score, Distortion_score, EPS):
+    score = RL_score*2 - Origin_score - Distortion_score
+    reward = 1.0 if score > -EPS else -1.0
+    return reward

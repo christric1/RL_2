@@ -31,9 +31,9 @@ class Actor(nn.Module):
         for param in self.resnet18.parameters():
             param.requires_grad = False
 
-        self.fc1 = nn.Linear(512 * 7 * 7, 1024)
-        self.fc2 = nn.Linear(1024, 1024)
-        self.fc3 = nn.Linear(1024, action_size)  
+        self.fc1 = nn.Linear(512 * 7 * 7, 2048)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.fc3 = nn.Linear(2048, action_size)  
 
         self.reset_parameters()
 
@@ -66,9 +66,9 @@ class Critic(nn.Module):
         for param in self.resnet18.parameters():
             param.requires_grad = False
             
-        self.fc1 = nn.Linear(512 * 7 * 7 + action_size, 1024)
-        self.fc2 = nn.Linear(1024, 1024)
-        self.fc3 = nn.Linear(1024, 1)
+        self.fc1 = nn.Linear(512 * 7 * 7 + action_size, 2048)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.fc3 = nn.Linear(2048, 1)
 
         self.reset_parameters()
 
