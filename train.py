@@ -106,20 +106,20 @@ if __name__ == '__main__':
                     action : [contrast, saturation, brightness]
                 '''
                 # Origin Image
-                Avg_iou_origin, F1_score_origin = yolo_model.detectImg(img, target)
-                Origin_score = get_score(Avg_iou_origin, F1_score_origin, GAMMA)
+                Avg_iou_origin, precision_origin, recall_origin = yolo_model.detectImg(img, target)
+                Origin_score = get_score(Avg_iou_origin, precision_origin, recall_origin)
 
                 # Distortion Image
                 distortion_img = distortion_image(img)
-                Avg_iou_distortion, F1_score_distortion = yolo_model.detectImg(distortion_img, target)
-                Distortion_score = get_score(Avg_iou_distortion, F1_score_distortion, GAMMA)
+                Avg_iou_distortion, precision_distortion, recall_distortion = yolo_model.detectImg(distortion_img, target)
+                Distortion_score = get_score(Avg_iou_distortion, precision_distortion, recall_distortion)
 
                 # With RL Score
                 action = agent.act(distortion_img.unsqueeze(dim=0))
                 trans_action = transform_action(action[0], 0.7, 1.3)
                 adjust_img = modify_image(img, *trans_action)
-                Avg_iou_RL, F1_score_RL = yolo_model.detectImg(adjust_img, target)
-                RL_score = get_score(Avg_iou_RL, F1_score_RL, GAMMA)
+                Avg_iou_RL, precision_score_RL, recall_distortion_RL = yolo_model.detectImg(adjust_img, target)
+                RL_score = get_score(Avg_iou_RL, precision_score_RL, recall_distortion_RL)
 
                 reward = get_reward(RL_score, Origin_score, Distortion_score, 0.01)
                 

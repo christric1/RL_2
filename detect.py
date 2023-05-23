@@ -134,97 +134,12 @@ class yolo:
         # ------------------------------------------------------------------ #
         stats = [np.concatenate(x, 0) for x in zip(*stats)]
         p, r, ap, f1, ap_class = ap_per_class(*stats)
+        ap50, ap = ap[:, 0], ap.mean(1)  # AP@0.5, AP@0.5:0.95
+        mp, mr, map50, map = p.mean(), r.mean(), ap50.mean(), ap.mean()
         avg_iou = torch.cat(label_iou).numpy().mean() if len(label_iou) > 0 else 0
 
-        return avg_iou, f1.mean()
+        return avg_iou, mp, mr
         
-
-def detectImg(image: Tensor, labels: Tensor) -> str:
-    """
-    Args
-        image  : [1, height, width]
-        targets : [label, xmin, ymin, xmax, ymax]
-
-    Return 
-        avg_iou : float 
-        F1_score : float
-    """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    weights = 'yolov7.pt'
-
-    # iou threshold
-    iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
-    niou = iouv.numel() 
-
-    # Load model
-    model = attempt_load(weights, map_location=device)  # load FP32 model
-    stride = int(model.stride.max())  # model stride
-    imgsz = check_img_size(640, s=stride)  # check img_size
-    
-    # Resize and pad image while meeting stride-multiple constraints
-    img_ = image.permute(1, 2, 0).numpy()
-    img_ = (img_[:, :, ::-1] * 255).astype(np.uint8)    # to BGR
-    Padded_image = letterbox(img_, imgsz, stride=stride)[0]
-    Padded_image = TF.to_tensor(Padded_image)[[2, 1, 0], :, :].unsqueeze(dim=0).to(device)     # to tensor, to RGB, add dim=0
-
-    # Get the prediction
-    with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
-        out = model(Padded_image)[0]
-    
-    # Apply NMS
-    NMS_out = non_max_suppression(out, conf_thres=0.25, iou_thres=0.45)
-
-    # Process detections
-    for si, pred in enumerate(NMS_out):
-        nl = len(labels)
-        tcls = labels[:, 0].tolist() if nl else []  # target class
-
-        # if len(pred) == 0:
-        #     if nl:
-        #         stats.append((torch.zeros(0, niou, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
-
-        # Predictions : [xmin, ymin, xmax, ymax, obj, cls]
-        predn = pred.clone()
-        scale_coords(Padded_image.shape[2:], predn[:, :4], image.shape[1:])  # native-space pred
-
-        # Assign all predictions as incorrect
-        correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=device)
-        if nl:
-            detected = []  # target indices
-            tcls_tensor = labels[:, 0].to(device)
-
-            # target boxes
-            tbox = labels[:, 1:].to(device)
-            scale_boxs(tbox, image.shape[1:])
-
-            # Per target class
-            for cls in torch.unique(tcls_tensor):
-                ti = (cls == tcls_tensor).nonzero(as_tuple=False).view(-1)  # target indices
-                pi = (cls == predn[:, 5]).nonzero(as_tuple=False).view(-1)  # prediction indices
-
-                # Search for detections
-                if pi.shape[0]:
-                    # Prediction to target ious
-                    ious, i = box_iou(predn[pi, :4], tbox[ti]).max(1)  # best ious, indices
-
-                    # Append detections
-                    detected_set = set()
-                    for j in (ious > iouv[0]).nonzero(as_tuple=False):
-                        d = ti[i[j]]  # detected target
-                        if d.item() not in detected_set:
-                            detected_set.add(d.item())
-                            detected.append(d)
-                            correct[pi[j]] = ious[j] > iouv  # iou_thres is 1xn
-                            if len(detected) == nl:  # all targets already located in image
-                                break
-            
-            # Evaluation metric
-            stats = [(correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls)]
-            stats = [np.concatenate(x, 0) for x in zip(*stats)]
-            p, r, ap, f1, ap_class = ap_per_class(*stats)
-            print(f1)
-
-    # return avgRecall, avgPrecision
 
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
@@ -378,7 +293,7 @@ def detect(save_img=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/images/bus.jpg', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')

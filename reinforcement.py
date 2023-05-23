@@ -148,8 +148,8 @@ def distortion_image(image: Tensor, max_kernel_size=5):
 
     return image
 
-def get_score(Avg_iou, F1_score, GAMMA):
-    return GAMMA * Avg_iou + (1-GAMMA) * F1_score
+def get_score(Avg_iou, precison, recall):
+    return 0.25 * Avg_iou + 0.25 * precison + 0.5 * recall
 
 def get_reward(RL_score, Origin_score, Distortion_score, EPS):
     score = RL_score*2 - Origin_score - Distortion_score
