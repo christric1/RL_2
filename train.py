@@ -41,7 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--resume', type=str, help='resume?')
     parser.add_argument('--plot', action='store_true', help='plot?')
-    parser.add_argument('--split_dataset', default='1000', type=int, help='split dataset')
+    parser.add_argument('--split_dataset', default='20000', type=int, help='split dataset')
     opt = parser.parse_args()
 
     # Device
@@ -74,9 +74,11 @@ if __name__ == '__main__':
     # yolov7 model
     yolo_model = yolo()
 
-    # Trainloader & Testloader
+    # Trainloader
     trainDataset = OD_Dataset(opt.dataset_path, mode='train')
-    trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
+    subset_indices = random.sample(range(len(trainDataset)), opt.split_dataset)
+    partial_dataset = Subset(trainDataset, subset_indices)
+    trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
     #---------------------------------------#
     #   Start training
@@ -85,10 +87,10 @@ if __name__ == '__main__':
         '''
             Random split dataset
         '''
-        if opt.split_dataset:
-            subset_indices = random.sample(range(len(trainDataset)), opt.split_dataset)
-            partial_dataset = Subset(trainDataset, subset_indices)
-            trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
+        # if opt.split_dataset:
+        #     subset_indices = random.sample(range(len(trainDataset)), opt.split_dataset)
+        #     partial_dataset = Subset(trainDataset, subset_indices)
+        #     trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
         pbar = tqdm(enumerate(trainDataloader), total=len(trainDataloader))
         for i, data in pbar:
