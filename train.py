@@ -116,7 +116,7 @@ if __name__ == '__main__':
 
                 # With RL Score
                 action = agent.act(distortion_img.unsqueeze(dim=0))
-                trans_action = transform_action(action[0], 0.7, 1.3)
+                trans_action = transform_action(action[0], 0.5, 1.5)
                 adjust_img = modify_image(img, *trans_action)
                 Avg_iou_RL, precision_score_RL, recall_distortion_RL = yolo_model.detectImg(adjust_img, target)
                 RL_score = get_score(Avg_iou_RL, precision_score_RL, recall_distortion_RL)
@@ -153,6 +153,7 @@ if __name__ == '__main__':
                     plt.savefig('image.jpg')
 
         # end batch -------------------------------------------------------------
+        writer.flush()
         agent.save()    # Save model
         record_training(save_dir, epoch+1, update_cnt)    # Save training record
 
