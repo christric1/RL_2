@@ -331,7 +331,7 @@ if __name__ == '__main__':
              save_conf=opt.save_conf,
              trace=not opt.no_trace,
              v5_metric=opt.v5_metric
-             )
+            )
 
     elif opt.task == 'speed':  # speed benchmarks
         for w in opt.weights:

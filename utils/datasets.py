@@ -372,7 +372,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         if self.ddpg_Transform:
             action_dim = 4
-            weight_dir = "runs/train/exp"
+            weight_dir = "runs/train/exp60"
             self.agent = DDPGAgent(action_dim)
             self.agent.load(weight_dir)
 
@@ -572,7 +572,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
             if self.ddpg_Transform:
                 action = self.agent.act(TF.to_tensor(img).flip(dims=[0]).unsqueeze(dim=0))
-                trans_action = transform_action(action[0], [0.5, 1.5])
+                trans_action = transform_action(action[0], 0.5, 1.5)
                 adjust_img = modify_image(TF.to_tensor(img), *trans_action)
                 img = (adjust_img.permute(1, 2, 0).numpy()[:, :, ::-1] * 255).astype(np.uint8)
 
