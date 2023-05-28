@@ -33,7 +33,7 @@ def print_memory_usage():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-path', type=str, default='coco')
-    parser.add_argument('--epochs', type=int, default=50)
+    parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--steps', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=32, help='total batch size for all GPUs')
     parser.add_argument('--buffer-size', type=int, default=2000, help='buffer size')
@@ -106,22 +106,17 @@ if __name__ == '__main__':
                 Avg_iou_origin, precision_origin, recall_origin = yolo_model.detectImg(img, target)
                 Origin_score = get_score(Avg_iou_origin, precision_origin, recall_origin)
 
-                # Distortion Image
-                distortion_img = distortion_image(img)
-                Avg_iou_distortion, precision_distortion, recall_distortion = yolo_model.detectImg(distortion_img, target)
-                Distortion_score = get_score(Avg_iou_distortion, precision_distortion, recall_distortion)
-
                 # With RL Score
-                action = agent.act(distortion_img.unsqueeze(dim=0))
+                action = agent.act(img.unsqueeze(dim=0))
                 trans_action = transform_action(action[0], 0.5, 1.5)
                 adjust_img = modify_image(img, *trans_action)
                 Avg_iou_RL, precision_score_RL, recall_distortion_RL = yolo_model.detectImg(adjust_img, target)
                 RL_score = get_score(Avg_iou_RL, precision_score_RL, recall_distortion_RL)
 
-                reward = get_reward(RL_score, Origin_score, Distortion_score, 0.01)
+                reward = get_reward(RL_score, Origin_score, 0)
                 
                 # Push experient to memory
-                state = distortion_img
+                state = img
                 next_state = adjust_img
                 critic_loss, actor_loss = agent.step(state, action, reward, next_state)
                 

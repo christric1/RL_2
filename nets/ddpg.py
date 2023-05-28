@@ -33,7 +33,7 @@ class Actor(nn.Module):
 
         self.fc1 = nn.Linear(512 * 7 * 7, 2048)
         self.fc2 = nn.Linear(2048, 2048)
-        self.fc3 = nn.Linear(2048, action_size)  
+        self.fc3 = nn.Linear(2048, action_size)
 
         self.reset_parameters()
 

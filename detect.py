@@ -70,7 +70,7 @@ class yolo:
         #   Get the prediction
         # ------------------------------------------------------------------ #
         with torch.no_grad(): 
-            out = self.model(padded_images)[0]
+            out = self.model(padded_images.to(self.device))[0]
 
         # ------------------------------------------------------------------ # 
         #   Apply NMS

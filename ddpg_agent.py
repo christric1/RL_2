@@ -13,23 +13,21 @@ import torchvision.transforms.functional as TF
 
 
 # HyperParemeter
-BUFFER_SIZE = int(2e3)  # replay buffer size
+BUFFER_SIZE = 2000  # replay buffer size
 BATCH_SIZE = 32         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
-LR_ACTOR = 1e-5         # learning rate of the actor 
-LR_CRITIC = 1e-4        # learning rate of the critic
+LR_ACTOR = 1e-4         # learning rate of the actor 
+LR_CRITIC = 1e-3       # learning rate of the critic
 WEIGHT_DECAY = 0.0001   # L2 weight decay
 
 # Device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Transform
-normalize = transforms.Normalize(mean = [0.471, 0.448, 0.408], std = [0.234, 0.239, 0.242])
 transformer = transforms.Compose([
     transforms.Resize([224, 224]),
     transforms.ToTensor(),
-    normalize
 ])
 
 
