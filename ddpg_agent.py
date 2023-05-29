@@ -63,7 +63,7 @@ class DDPGAgent():
         self.critic_local = Critic(action_size).to(device)
         self.critic_target = Critic(action_size).to(device)
         fc_params_ = list(self.critic_local.fc1.parameters()) + list(self.critic_local.fc2.parameters()) + list(self.critic_local.fc3.parameters())
-        self.critic_optimizer = optim.Adam(fc_params_, lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        self.critic_optimizer = optim.Adam(fc_params_, lr=LR_CRITIC)
 
         # Noise process
         self.noise = OUNoise(action_size)
