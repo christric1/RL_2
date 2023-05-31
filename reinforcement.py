@@ -153,5 +153,5 @@ def get_score(Avg_iou, precison, recall):
 
 def get_reward(RL_score, Origin_score, EPS):
     score = RL_score - Origin_score
-    reward = 1.0 if score > EPS else -1.0
-    return reward
+    # reward = 1.0 if score > EPS else -1.0
+    return score

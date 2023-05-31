@@ -80,6 +80,12 @@ if __name__ == '__main__':
     partial_dataset = Subset(trainDataset, subset_indices)
     trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
 
+    # Partial dataset names
+    data_name = [trainDataset.data_names[i] for i in partial_dataset.indices]
+    with open(os.path.join(save_dir, "data_name.txt"), 'w') as f:
+        for line in data_name:
+            f.write(line + '\n')
+
     #---------------------------------------#
     #   Start training
     #---------------------------------------#
@@ -129,9 +135,10 @@ if __name__ == '__main__':
                                   "Actor_loss": "{:.4f}".format(actor_loss)})
                 
                 # Writer
-                writer.add_scalar('Critic_loss/train', critic_loss, update_cnt)
-                writer.add_scalar('Actor_loss/train', actor_loss, update_cnt)
-                writer.add_scalar('Reward/train', reward, update_cnt)
+                writer.add_scalar('loss/critic_loss', critic_loss, update_cnt)
+                writer.add_scalar('loss/actor_loss', actor_loss, update_cnt)
+                writer.add_scalar('reward', reward, update_cnt)
+                writer.add_scalars('score', {'origin_image': Origin_score, 'adjusted_image': RL_score}, update_cnt)
                 update_cnt += 1 
 
                 if opt.plot:
