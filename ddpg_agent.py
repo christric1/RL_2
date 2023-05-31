@@ -58,12 +58,14 @@ class DDPGAgent():
         self.actor_target = Actor(action_size).to(device)
         fc_params = list(self.actor_local.fc1.parameters()) + list(self.actor_local.fc2.parameters()) + list(self.actor_local.fc3.parameters())
         self.actor_optimizer = optim.Adam(fc_params, lr=LR_ACTOR)
+        self.actor_scheduler = optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10000, gamma=0.1)
 
         # Critic Network (w/ Target Network)
         self.critic_local = Critic(action_size).to(device)
         self.critic_target = Critic(action_size).to(device)
         fc_params_ = list(self.critic_local.fc1.parameters()) + list(self.critic_local.fc2.parameters()) + list(self.critic_local.fc3.parameters())
         self.critic_optimizer = optim.Adam(fc_params_, lr=LR_CRITIC)
+        self.critic_scheduler = optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10000, gamma=0.1)
 
         # Noise process
         self.noise = OUNoise(action_size)
@@ -125,6 +127,7 @@ class DDPGAgent():
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
+        self.critic_scheduler.step()
 
         # ---------------------------- update actor ---------------------------- #
         # Compute actor loss
@@ -134,6 +137,7 @@ class DDPGAgent():
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
+        self.actor_scheduler.step()
 
         # ----------------------- update target networks ----------------------- #
         self.soft_update(self.critic_local, self.critic_target, TAU)

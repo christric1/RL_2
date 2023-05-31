@@ -372,7 +372,7 @@ class LoadImagesAndLabels(Dataset):  # for training/testing
 
         if self.ddpg_Transform:
             action_dim = 4
-            weight_dir = "runs/train/exp60"
+            weight_dir = "runs/train/setting_2/exp1"
             self.agent = DDPGAgent(action_dim)
             self.agent.load(weight_dir)
 
