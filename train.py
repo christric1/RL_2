@@ -119,7 +119,7 @@ if __name__ == '__main__':
                 Avg_iou_RL, precision_score_RL, recall_distortion_RL = yolo_model.detectImg(adjust_img, target)
                 RL_score = get_score(Avg_iou_RL, precision_score_RL, recall_distortion_RL)
 
-                reward = get_reward(RL_score, Origin_score, 0)
+                reward = get_reward(RL_score, Origin_score, 100)
                 
                 # Push experient to memory
                 state = img
