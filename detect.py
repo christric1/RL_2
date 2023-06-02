@@ -25,7 +25,7 @@ class yolo:
     """
     def __init__(self) -> None:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.weights = 'yolov7.pt'
+        self.weights = 'yolov7-tiny.pt'
 
         # iou threshold
         self.iouv = torch.linspace(0.5, 0.95, 10).to(self.device)  # iou vector for mAP@0.5:0.95

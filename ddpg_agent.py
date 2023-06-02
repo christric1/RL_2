@@ -72,14 +72,17 @@ class DDPGAgent():
 
         # Replay memory
         self.memory = ReplayBuffer(action_size, buffer_size, batch_size)
+        self.counter = 0
+        self.learn_frequence = 32
     
     def step(self, state, action, reward, next_state):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
         self.memory.add(state, action, reward, next_state)
+        self.counter = (self.counter+1) % self.learn_frequence
 
         # Learn, if enough samples are available in memory
-        if len(self.memory) > BATCH_SIZE:
+        if (len(self.memory) > BATCH_SIZE) & (self.counter == self.learn_frequence-1) :
             experiences = self.memory.sample()
             critic_loss, actor_loss = self.learn(experiences, GAMMA)
         else:

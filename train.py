@@ -36,7 +36,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--steps', type=int, default=1)
     parser.add_argument('--batch-size', type=int, default=32, help='total batch size for all GPUs')
-    parser.add_argument('--buffer-size', type=int, default=2000, help='buffer size')
+    parser.add_argument('--buffer-size', type=int, default=6000, help='buffer size')
     parser.add_argument('--project', default='runs/train', help='save to project/name')
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--resume', type=str, help='resume?')
@@ -76,15 +76,7 @@ if __name__ == '__main__':
 
     # Trainloader
     trainDataset = OD_Dataset(opt.dataset_path, mode='train')
-    subset_indices = random.sample(range(len(trainDataset)), opt.split_dataset)
-    partial_dataset = Subset(trainDataset, subset_indices)
-    trainDataloader = DataLoader(partial_dataset, batch_size=1, shuffle=True)
-
-    # Partial dataset names
-    data_name = [trainDataset.data_names[i] for i in partial_dataset.indices]
-    with open(os.path.join(save_dir, "data_name.txt"), 'w') as f:
-        for line in data_name:
-            f.write(line + '\n')
+    trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
 
     #---------------------------------------#
     #   Start training
@@ -119,7 +111,7 @@ if __name__ == '__main__':
                 Avg_iou_RL, precision_score_RL, recall_distortion_RL = yolo_model.detectImg(adjust_img, target)
                 RL_score = get_score(Avg_iou_RL, precision_score_RL, recall_distortion_RL)
 
-                reward = get_reward(RL_score, Origin_score, 100)
+                reward = get_reward(RL_score, Origin_score)
                 
                 # Push experient to memory
                 state = img
